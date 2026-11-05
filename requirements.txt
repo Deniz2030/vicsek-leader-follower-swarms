@@ -1,0 +1,7 @@
+numpy
+pandas
+scipy
+matplotlib
+# GPU runs (optional; without it the scripts fall back to NumPy on the CPU).
+# Install the CuPy build that matches your CUDA version, e.g.:
+#   pip install cupy-cuda12x
