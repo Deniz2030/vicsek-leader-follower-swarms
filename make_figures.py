@@ -107,9 +107,10 @@ def ordered_band(ax):
     ax.text(1.0, 1 / 3, " disordered", transform=ax.get_yaxis_transform(), color=INK2, fontsize=6, va="center")
 
 
-def sweep_figure(name, df, x, xlabel, refs=(), band=None, logx=False, color=BLUE):
+def sweep_figure(name, df, x, xlabel, refs=(), band=None, logx=False, color=BLUE, overlay=None):
     """Three panels: (a) <Omega> +- SE, (b) chi, (c) U4 against one control parameter.
-    refs: list of (x, label, linestyle) reference lines; band: (lo, hi, label)."""
+    refs: list of (x, label, linestyle) reference lines; band: (lo, hi, label);
+    overlay: optional (DataFrame with the same columns, legend label) drawn as a grey dashed reference."""
     df = df.sort_values(x)
     fig, axs = plt.subplots(1, 3, figsize=(W, 2.15))
     cols = [("Omega_Avg", r"Order parameter $\langle\Omega\rangle$"),
@@ -122,10 +123,16 @@ def sweep_figure(name, df, x, xlabel, refs=(), band=None, logx=False, color=BLUE
             ax.axvline(ref[0], color=REF, ls=ref[2], lw=0.9)
         if c == "Omega_Avg":
             ax.errorbar(df[x], df[c], yerr=df["Omega_StdErr"], color=color, marker="o", capsize=1.5,
-                        elinewidth=0.7, capthick=0.7)
+                        elinewidth=0.7, capthick=0.7,
+                        label="heterogeneous" if overlay is not None else None)
             ax.set_ylim(0, 1.0)
         else:
             ax.plot(df[x], df[c], color=color, marker="o")
+        if overlay is not None:
+            ov, ov_label = overlay
+            ov = ov.sort_values(x)
+            ax.plot(ov[x], ov[c], color=REF, ls="--", lw=1.0, marker="s", ms=2.5,
+                    label=ov_label if i == 0 else None)
         if c == "Binder_U4":
             ordered_band(ax)
             ax.set_ylim(0.25, 0.70)
@@ -155,6 +162,8 @@ def sweep_figure(name, df, x, xlabel, refs=(), band=None, logx=False, color=BLUE
         else:
             axs[0].text((band[0] * band[1]) ** 0.5 if logx else 0.5 * (band[0] + band[1]), 0.03, band[2],
                         transform=axs[0].get_xaxis_transform(), ha="center", va="bottom", fontsize=6, color=INK2)
+    if overlay is not None:
+        axs[0].legend(loc="upper left", fontsize=6, frameon=False)
     fig.tight_layout(w_pad=1.6)
     save(fig, name)
 
@@ -183,7 +192,14 @@ def fig1():
 @fig(2)
 def fig2():
     df = pd.read_csv(find("1sweep_n1_ratio_{prof}_N*_metrics.csv"))
-    sweep_figure("Fig2", df, "Wise_Ratio", r"Informed fraction $f = N_1/N$")
+    # Reference: homogeneous flock with the same mean noise eta_bar = f*eta1 + (1-f)*eta2,
+    # interpolated from the noise sweep (Fig. 1); no extra simulation is needed.
+    h = pd.read_csv(find("5_sweep_eta_{prof}_N*_metrics.csv")).sort_values("Eta")
+    eta_bar = 0.10 * df.Wise_Ratio + 0.50 * (1 - df.Wise_Ratio)
+    hom = pd.DataFrame({"Wise_Ratio": df.Wise_Ratio,
+                        **{c: np.interp(eta_bar, h.Eta, h[c]) for c in ("Omega_Avg", "Chi", "Binder_U4")}})
+    sweep_figure("Fig2", df, "Wise_Ratio", r"Informed fraction $f = N_1/N$",
+                 overlay=(hom, r"homogeneous, same mean $\bar\eta$"))
 
 
 @fig(3)

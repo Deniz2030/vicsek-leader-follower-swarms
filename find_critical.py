@@ -27,6 +27,8 @@
 #   python find_critical.py --param rho  --lo 0.5  --hi 6.0  --tol 0.05
 #   python find_critical.py --param r0 | factor | k   (k = topological neighbours)
 #   add --steps / --tail / --seeds / --N / --profile as in the other scripts
+#   sensitivity of the method itself (see run_sensitivity.bat):
+#   python find_critical.py --param eta --lo 0.30 --hi 0.70 --u_star 0.45 --tag ustar045
 # =============================================================================
 import json
 import os
@@ -37,7 +39,6 @@ import numpy as np
 import vicsek_core as vc
 import vicsek_report as vr
 
-U_STAR = 0.5   # midpoint between ordered (2/3) and disordered (1/3) limits
 
 
 def extra(p):
@@ -48,9 +49,13 @@ def extra(p):
     p.add_argument("--max_seeds", type=int, default=8, help="adaptive seed cap near U*")
     p.add_argument("--wise_fixed", type=float, default=0.10, help="wise fraction when not swept")
     p.add_argument("--max_iter", type=int, default=20)
+    p.add_argument("--u_star", type=float, default=0.5,
+                   help="target U4 value defining p_c (default 0.5, midpoint of 1/3 and 2/3)")
+    p.add_argument("--tag", default="", help="suffix for the output file (sensitivity runs)")
 
 
 args, prof = vr.parse_args(default_N=3000, extra=extra)
+U_STAR = args.u_star   # default 0.5: midpoint between ordered (2/3) and disordered (1/3) limits
 
 # -----------------------------------------------------------------------------
 # Starling calibration (defaults for every parameter that is not swept)
@@ -158,13 +163,16 @@ err = 0.5 * (hi - lo) + (np.hypot(se_lo, se_hi) / slope if slope > 0 else 0.0)
 err = min(err, hi - lo)
 
 result = dict(param=args.param, p_c=p_c, p_c_err=err, bracket=[lo, hi], evaluations=len(log),
+              u_star=U_STAR, tol=args.tol, seeds=seeds0, max_seeds=args.max_seeds,
+              seeds_used=int(sum(r["seeds"] for r in log)),
               fixed=BASE, steps=steps, tail=tail, backend=backend,
               runtime_s=round(time.time() - t_global, 1), log=log)
 if args.param == "eta":
     result["eta_c_standard"] = 2 * np.pi * p_c
 
 out_dir = vr.output_dir_for(__file__)
-path = os.path.join(out_dir, f"find_critical_{args.param}_{args.profile}_N{args.N}.json")
+suffix = f"_{args.tag}" if args.tag else ""
+path = os.path.join(out_dir, f"find_critical_{args.param}_{args.profile}_N{args.N}{suffix}.json")
 with open(path, "w") as f:
     json.dump(result, f, indent=2, default=float)
 

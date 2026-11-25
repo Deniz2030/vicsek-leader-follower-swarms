@@ -25,7 +25,8 @@ The code runs on NVIDIA GPUs through CuPy and falls back to NumPy on the CPU.
 | `merge_finite_size.py` | Merges runs of `7_finite_size.py` made in separate sittings; Binder crossings of fitted U4 curves, χ_max(L), f_c estimates (Fig. 8) |
 | `8_correlation_starling.py` | Velocity-fluctuation correlation C(r) and correlation length ξ(L) (Fig. 9) |
 | `find_critical.py` | Algorithm 1: Binder-cumulant bisection with adaptive seeds for any control parameter |
-| `make_figures.py` | Publication figures 1–9 from the saved CSV files (no simulation) |
+| `run_sensitivity.py` | Sensitivity of Algorithm 1 to its own settings (U*, tolerance, seed cap, run length); writes `data/sensitivity_algorithm1_eta.csv` (revision, Section 3.8) |
+| `make_figures.py` | Publication figures 1–9 from the saved CSV files (no simulation); Figure 2 includes the homogeneous flock with the same mean noise |
 | `data/` | Metric tables (CSV) used in the paper |
 | `figures/` | Figures 1–9 (600-dpi PNG and vector PDF) |
 
@@ -48,6 +49,7 @@ python 1sweep_n1_ratio.py --profile paper   # 10000 steps, 5 seeds
 python 2_sweep_rho.py --steps 5000 --tail 2500 --seeds 4
 python find_critical.py --param eta --lo 0.30 --hi 0.70 --tol 0.01
 python find_critical.py --param k --lo 1 --hi 25 --tol 1
+python run_sensitivity.py                   # Algorithm 1 sensitivity, about 1.5-2 h on a GPU
 python 7_finite_size.py --N_list 1000 2000 4000 --steps 6000 --seeds 5
 python 7_finite_size.py --N_list 8000 --steps 6000 --tail 3000 --seeds 5
 python merge_finite_size.py
@@ -103,3 +105,10 @@ Please cite the article once published (details to be added).
 ## License
 
 MIT, see `LICENSE`.
+
+## Version history
+
+- **v1.1** (revision): `find_critical.py` gains `--u_star` (target U4 value, default 0.5) and `--tag`;
+  new `run_sensitivity.py` and `data/sensitivity_algorithm1_eta.csv`; Figure 2 shows a homogeneous
+  reference flock with the same mean noise. Default behaviour of all scripts is unchanged.
+- **v1.0**: code and data of the originally submitted manuscript.
